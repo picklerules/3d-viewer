@@ -1,9 +1,10 @@
 import React from 'react';
+import FileUploader from './FileUploader';
 
 function Home() {
     return (
         <div>
-            <h1>Home page</h1>
+            <FileUploader />
         </div>
     );
 }

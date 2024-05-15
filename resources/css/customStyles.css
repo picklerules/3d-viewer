@@ -1,0 +1,13 @@
+.container-full-height {
+    height: 100vh; 
+    display: flex;
+    flex-direction: column;
+}
+
+.border-dashed {
+    border-style: dashed !important;
+    border-color: #ccc; 
+    flex-grow: 1; 
+    align-items: center; 
+    justify-content: center;
+}
