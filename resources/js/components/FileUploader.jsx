@@ -17,8 +17,8 @@ function FileUploader() {
                 <input {...getInputProps()} />
                 {
                     isDragActive ?
-                    <p>Drop the files here ...</p> :
-                    <p>Drag and Drop your 3D files here</p>
+                    <h3>Drop the files here ...</h3> :
+                    <h3>Drag and Drop your 3D files here</h3>  
                 }
                 <p>Supported files format: obj, fbx, stl, ply, glb, glTF</p>
             </div>
