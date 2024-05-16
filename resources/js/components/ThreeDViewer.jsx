@@ -1,7 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'; 
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
+import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 function ThreeDViewer({ file }) {
@@ -31,9 +34,18 @@ function ThreeDViewer({ file }) {
         scene.add(directionalLight);
 
         const url = URL.createObjectURL(file);
-        loader.load(url, (object) => {
-            scene.add(object.scene || object); 
-            const box = new THREE.Box3().setFromObject(object.scene || object);
+        loader.load(url, (loadedObject) => {
+            let objectToAdd = loadedObject;
+         
+            if (loadedObject instanceof THREE.BufferGeometry) {
+                const material = new THREE.MeshPhongMaterial({ color: 0x555555, specular: 0x111111, shininess: 200 });
+                objectToAdd = new THREE.Mesh(loadedObject, material);
+            } else if (loadedObject.scene) { 
+                objectToAdd = loadedObject.scene;
+            }
+
+            scene.add(objectToAdd);
+            const box = new THREE.Box3().setFromObject(objectToAdd);
             const center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
             const maxDim = Math.max(size.x, size.y, size.z);
@@ -72,6 +84,12 @@ function ThreeDViewer({ file }) {
                 return new GLTFLoader();
             case 'obj':
                 return new OBJLoader();
+            case 'fbx':
+                return new FBXLoader();
+            case 'stl':
+                return new STLLoader();
+            case 'ply':
+                return new PLYLoader();
             default:
                 return null;
         }
