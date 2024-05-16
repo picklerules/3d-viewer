@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCloudArrowUp, faRotateRight } from '@fortawesome/free-solid-svg-icons';
 
-function Header() {
+function Header({ onFileSelect }) {
+    const fileInputRef = useRef(null);
+
     const handleUploadClick = () => {
-        console.log('Upload clicked');
+        fileInputRef.current.click(); 
+    };
+
+    const handleFileChange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            onFileSelect(file); 
+        }
     };
 
     const handleRefreshClick = () => {
@@ -16,6 +25,7 @@ function Header() {
             <p>logo</p>
             <h1>ONLINE 3D MODELS VIEWER</h1>
             <div>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
                 <button className="btn" onClick={handleUploadClick}>
                     <FontAwesomeIcon icon={faCloudArrowUp} size="2xl" style={{ color: "#1c927e" }} />
                 </button>

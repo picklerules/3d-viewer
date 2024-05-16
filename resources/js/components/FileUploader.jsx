@@ -7,6 +7,11 @@ import ThreeDViewer from './ThreeDViewer';
 function FileUploader() {
     const [file, setFile] = useState(null);
     
+    const handleFileSelect = (file) => {
+        console.log(file);
+        setFile(file);
+    };
+
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: acceptedFiles => {
             console.log(acceptedFiles);
@@ -16,7 +21,7 @@ function FileUploader() {
 
     return (
         <div className="container-full-height mx-5">
-            <Header />
+            <Header onFileSelect={handleFileSelect} />
             <div {...getRootProps()} className="border-dashed border-2 p-5 text-center viewer-container">
                 <input {...getInputProps()} />
                 {
@@ -25,7 +30,7 @@ function FileUploader() {
                     <h3>Drag and Drop your 3D files here</h3>
                 }
                 <p>Supported files format: obj, fbx, stl, ply, glb, glTF</p>
-                 {file && <ThreeDViewer file={file} />}
+                {file && <ThreeDViewer file={file} />}
             </div> 
         </div>
     );
