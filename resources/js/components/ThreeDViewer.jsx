@@ -13,34 +13,45 @@ function ThreeDViewer({ file }) {
             Object.defineProperty(file, "type", { value: 'model/gltf-binary' });
         }
 
-        console.log("Processed file type:", file.type);  
-
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setClearColor(0xffffff); 
+        renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
         mountRef.current.appendChild(renderer.domElement);
 
-        const gridHelper = new THREE.GridHelper(10, 10);
-        scene.add(gridHelper);
-        const axesHelper = new THREE.AxesHelper(5);
-        scene.add(axesHelper);
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff);
+        directionalLight.position.set(0, 1, 0);
+        scene.add(directionalLight);
 
         const url = URL.createObjectURL(file);
         const loader = new GLTFLoader();
         loader.load(url, (gltf) => {
             scene.add(gltf.scene);
-            camera.position.set(0, 0, 5);
-            camera.lookAt(gltf.scene.position);
+            const box = new THREE.Box3().setFromObject(gltf.scene);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            const cameraZ = Math.abs(maxDim / 2 * Math.tan(fov * 2)); 
+
+            camera.position.set(center.x, center.y - (size.y / 4), cameraZ * 5); 
+            camera.lookAt(center);
+
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.target.copy(center);
+            controls.update();
+
+            animate();
         }, undefined, (error) => {
             console.error('An error occurred while loading the GLTF:', error);
         });
 
-        const controls = new OrbitControls(camera, renderer.domElement);
-
         const animate = () => {
             requestAnimationFrame(animate);
-            controls.update();
             renderer.render(scene, camera);
         };
         animate();
@@ -51,7 +62,7 @@ function ThreeDViewer({ file }) {
         };
     }, [file]);
 
-    return <div ref={mountRef} style={{ height: '100vh' }}></div>;
+    return <div ref={mountRef} className="viewer-container"></div>;
 }
 
 export default ThreeDViewer;
