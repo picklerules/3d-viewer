@@ -27,17 +27,16 @@ function ThreeDViewer({ file }) {
         renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
         mountRef.current.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.75); 
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1);
         scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); 
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
 
         const url = URL.createObjectURL(file);
         loader.load(url, (loadedObject) => {
-            let objectToAdd = loadedObject;
-         
+            let objectToAdd = loadedObject.scene ? loadedObject.scene : loadedObject;
             if (loadedObject instanceof THREE.BufferGeometry) {
                 const material = new THREE.MeshPhongMaterial({
                     color: 0xffffff,  
@@ -46,18 +45,16 @@ function ThreeDViewer({ file }) {
                     reflectivity: 0.5
                 });
                 objectToAdd = new THREE.Mesh(loadedObject, material);
-            } else if (loadedObject.scene) { 
-                objectToAdd = loadedObject.scene;
             }
 
             scene.add(objectToAdd);
+
             const box = new THREE.Box3().setFromObject(objectToAdd);
             const center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
             const maxDim = Math.max(size.x, size.y, size.z);
             const fov = camera.fov * (Math.PI / 180);
             const cameraZ = Math.abs(maxDim / 2 * Math.tan(fov * 2));
-
             camera.position.set(center.x, center.y - (size.y / 4), cameraZ * 5);
             camera.lookAt(center);
 
@@ -67,17 +64,21 @@ function ThreeDViewer({ file }) {
 
             animate();
 
-            // Calculate and set details
-            const geometry = objectToAdd instanceof THREE.Mesh ? objectToAdd.geometry : null;
-            if (geometry) {
-                geometry.computeBoundingBox();
-                const vertices = geometry.attributes.position.count;
-                const triangles = geometry.index ? geometry.index.count / 3 : vertices / 3;
-                const sizeX = box.max.x - box.min.x;
-                const sizeY = box.max.y - box.min.y;
-                const sizeZ = box.max.z - box.min.z;
-                setDetails({ vertices, triangles, sizeX, sizeY, sizeZ });
-            }
+            objectToAdd.traverse(child => {
+                if (child.isMesh && child.geometry) {
+                    child.geometry.computeBoundingBox();
+                    const vertices = child.geometry.attributes.position.count;
+                    const triangles = child.geometry.index ? child.geometry.index.count / 3 : vertices / 3;
+                    setDetails(prevDetails => ({
+                        vertices: prevDetails.vertices + vertices,
+                        triangles: prevDetails.triangles + triangles,
+                        sizeX: size.x,
+                        sizeY: size.y,
+                        sizeZ: size.z
+                    }));
+                }
+            });
+
         }, undefined, (error) => {
             console.error('An error occurred while loading the model:', error);
         });
@@ -114,7 +115,7 @@ function ThreeDViewer({ file }) {
 
     return (
         <div ref={mountRef} className="viewer-container">
-            {details && (
+            {details.vertices > 0 && (
                 <div className="details-panel">
                     <h4>Details</h4>
                     <p>Vertices: {details.vertices}</p>
