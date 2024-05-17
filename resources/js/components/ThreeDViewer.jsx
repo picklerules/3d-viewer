@@ -10,13 +10,16 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 function ThreeDViewer({ file }) {
     const mountRef = useRef(null);
     const [details, setDetails] = useState({ vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0 });
+    const [errorMessage, setErrorMessage] = useState(""); // State to hold error messages
 
     useEffect(() => {
+        setDetails({ vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0 }); // Reset details
+        setErrorMessage(""); // Clear any previous error messages
         if (!file) return;
 
         const loader = selectLoader(file.name);
         if (!loader) {
-            console.error('Unsupported file format');
+            setErrorMessage("Unsupported file format"); 
             return;
         }
 
@@ -38,13 +41,12 @@ function ThreeDViewer({ file }) {
         loader.load(url, (loadedObject) => {
             let objectToAdd = loadedObject.scene ? loadedObject.scene : loadedObject;
             if (loadedObject instanceof THREE.BufferGeometry) {
-                const material = new THREE.MeshPhongMaterial({
-                    color: 0xffffff,  
+                objectToAdd = new THREE.Mesh(loadedObject, new THREE.MeshPhongMaterial({
+                    color: 0xffffff,
                     specular: 0x222222,
                     shininess: 100,
                     reflectivity: 0.5
-                });
-                objectToAdd = new THREE.Mesh(loadedObject, material);
+                }));
             }
 
             scene.add(objectToAdd);
@@ -81,6 +83,7 @@ function ThreeDViewer({ file }) {
 
         }, undefined, (error) => {
             console.error('An error occurred while loading the model:', error);
+            setErrorMessage("An error occurred while loading the model."); 
         });
 
         const animate = () => {
@@ -92,7 +95,7 @@ function ThreeDViewer({ file }) {
             mountRef.current.removeChild(renderer.domElement);
             URL.revokeObjectURL(url);
         };
-    }, [file]);
+    }, [file]); 
 
     function selectLoader(filename) {
         const extension = filename.toLowerCase().split('.').pop();
@@ -115,6 +118,7 @@ function ThreeDViewer({ file }) {
 
     return (
         <div ref={mountRef} className="viewer-container">
+            {errorMessage && <p className="error-message text-danger">{errorMessage}</p>}
             {details.vertices > 0 && (
                 <div className="details-panel">
                     <h4>Details</h4>
