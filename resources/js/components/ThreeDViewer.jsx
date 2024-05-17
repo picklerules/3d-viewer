@@ -29,16 +29,22 @@ function ThreeDViewer({ file }) {
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.75); 
         scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff);
-        directionalLight.position.set(0, 1, 0);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); 
+        directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
+        
 
         const url = URL.createObjectURL(file);
         loader.load(url, (loadedObject) => {
             let objectToAdd = loadedObject;
          
             if (loadedObject instanceof THREE.BufferGeometry) {
-                const material = new THREE.MeshPhongMaterial({ color: 0x555555, specular: 0x111111, shininess: 200 });
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0xffffff,  
+                    specular: 0x222222,
+                    shininess: 100,
+                    reflectivity: 0.5
+                });
                 objectToAdd = new THREE.Mesh(loadedObject, material);
             } else if (loadedObject.scene) { 
                 objectToAdd = loadedObject.scene;
