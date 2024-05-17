@@ -16,7 +16,9 @@ function FileUploader() {
         onDrop: acceptedFiles => {
             console.log(acceptedFiles);
             setFile(acceptedFiles[0]); 
-        }
+        },
+        multiple: false,
+        noClick: true
     });
 
     return (
