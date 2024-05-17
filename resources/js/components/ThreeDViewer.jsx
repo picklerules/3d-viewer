@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
@@ -9,6 +9,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 function ThreeDViewer({ file }) {
     const mountRef = useRef(null);
+    const [details, setDetails] = useState({ vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0 });
 
     useEffect(() => {
         if (!file) return;
@@ -32,7 +33,6 @@ function ThreeDViewer({ file }) {
         const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); 
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
-        
 
         const url = URL.createObjectURL(file);
         loader.load(url, (loadedObject) => {
@@ -66,6 +66,18 @@ function ThreeDViewer({ file }) {
             controls.update();
 
             animate();
+
+            // Calculate and set details
+            const geometry = objectToAdd instanceof THREE.Mesh ? objectToAdd.geometry : null;
+            if (geometry) {
+                geometry.computeBoundingBox();
+                const vertices = geometry.attributes.position.count;
+                const triangles = geometry.index ? geometry.index.count / 3 : vertices / 3;
+                const sizeX = box.max.x - box.min.x;
+                const sizeY = box.max.y - box.min.y;
+                const sizeZ = box.max.z - box.min.z;
+                setDetails({ vertices, triangles, sizeX, sizeY, sizeZ });
+            }
         }, undefined, (error) => {
             console.error('An error occurred while loading the model:', error);
         });
@@ -74,7 +86,6 @@ function ThreeDViewer({ file }) {
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
         };
-        animate();
 
         return () => {
             mountRef.current.removeChild(renderer.domElement);
@@ -101,7 +112,20 @@ function ThreeDViewer({ file }) {
         }
     }
 
-    return <div ref={mountRef} className="viewer-container"></div>;
+    return (
+        <div ref={mountRef} className="viewer-container">
+            {details && (
+                <div className="details-panel">
+                    <h4>Details</h4>
+                    <p>Vertices: {details.vertices}</p>
+                    <p>Triangles: {details.triangles}</p>
+                    <p>Size X: {details.sizeX.toFixed(2)}</p>
+                    <p>Size Y: {details.sizeY.toFixed(2)}</p>
+                    <p>Size Z: {details.sizeZ.toFixed(2)}</p>
+                </div>
+            )}
+        </div>
+    );
 }
 
 export default ThreeDViewer;
