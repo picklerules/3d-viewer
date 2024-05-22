@@ -5,6 +5,7 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader';
+import { VRMLLoader } from 'three/examples/jsm/loaders/VRMLLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 function calculateMeshProperties(geometry) {
@@ -35,7 +36,7 @@ function calculateMeshProperties(geometry) {
 
     return {
         area: totalArea,
-        volume: Math.abs(totalVolume) 
+        volume: Math.abs(totalVolume)
     };
 }
 
@@ -44,7 +45,7 @@ function ThreeDViewer({ file }) {
     const [details, setDetails] = useState({
         vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0, surfaceArea: 0, volume: 0
     });
-    const [errorMessage, setErrorMessage] = useState(""); 
+    const [errorMessage, setErrorMessage] = useState("");
     const [fileInfo, setFileInfo] = useState({ fileSize: 0, uploadDate: '' });
 
     useEffect(() => {
@@ -109,11 +110,10 @@ function ThreeDViewer({ file }) {
             animate();
 
             objectToAdd.traverse(child => {
-                if (child.isMesh && child.geometry) {
-                    child.geometry.computeBoundingBox();
+                if (child.isMesh && child.geometry && child.geometry.attributes.position && (child.geometry.index || child.geometry.attributes.position)) {
+                    const { area, volume } = calculateMeshProperties(child.geometry);
                     const vertices = child.geometry.attributes.position.count;
                     const triangles = child.geometry.index ? child.geometry.index.count / 3 : vertices / 3;
-                    const { area, volume } = calculateMeshProperties(child.geometry);
                     setDetails(prevDetails => ({
                         ...prevDetails,
                         vertices: prevDetails.vertices + vertices,
@@ -141,7 +141,7 @@ function ThreeDViewer({ file }) {
             mountRef.current.removeChild(renderer.domElement);
             URL.revokeObjectURL(url);
         };
-    }, [file]); 
+    }, [file]);
 
     function selectLoader(filename) {
         const extension = filename.toLowerCase().split('.').pop();
@@ -157,6 +157,9 @@ function ThreeDViewer({ file }) {
                 return new STLLoader();
             case 'ply':
                 return new PLYLoader();
+            case 'wrl':
+            case 'vrml':
+                return new VRMLLoader();
             default:
                 return null;
         }

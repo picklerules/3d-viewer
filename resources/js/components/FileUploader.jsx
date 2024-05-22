@@ -31,7 +31,7 @@ function FileUploader() {
                     <h3>Drop the files here ...</h3> :
                     <h3>Drag and Drop your 3D files here</h3>
                 }
-                <p>Supported files format: obj, fbx, stl, ply, glb, glTF</p>
+                <p>Supported files format: obj, fbx, stl, ply, glb, glTF, vrml, wrl</p>
                 {file && <ThreeDViewer file={file} />}
             </div> 
         </div>
