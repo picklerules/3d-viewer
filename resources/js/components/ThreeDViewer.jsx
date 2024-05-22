@@ -11,11 +11,17 @@ function ThreeDViewer({ file }) {
     const mountRef = useRef(null);
     const [details, setDetails] = useState({ vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0 });
     const [errorMessage, setErrorMessage] = useState(""); 
+    const [fileInfo, setFileInfo] = useState({ fileSize: 0, uploadDate: '' });
 
     useEffect(() => {
         setDetails({ vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0 }); 
-        setErrorMessage("");
+        setErrorMessage(""); 
         if (!file) return;
+
+        setFileInfo({
+            fileSize: (file.size / 1024 / 1024).toFixed(2) + ' MB', 
+            uploadDate: new Date().toLocaleDateString()
+        });
 
         const loader = selectLoader(file.name);
         if (!loader) {
@@ -118,7 +124,7 @@ function ThreeDViewer({ file }) {
 
     return (
         <div ref={mountRef} className="viewer-container position-relative">
-            {errorMessage && <p className="error-message text-danger position-absolute top-0 right-0 p-3">{errorMessage}</p>}
+            {errorMessage && <p className="error-message text-danger">{errorMessage}</p>}
             {details.vertices > 0 && (
                 <div className="details-panel position-absolute top-0 right-0 p-3 bg-light">
                     <h4>Details</h4>
@@ -127,6 +133,8 @@ function ThreeDViewer({ file }) {
                     <p>Size X: {details.sizeX.toFixed(2)}</p>
                     <p>Size Y: {details.sizeY.toFixed(2)}</p>
                     <p>Size Z: {details.sizeZ.toFixed(2)}</p>
+                    <p>File Size: {fileInfo.fileSize}</p>
+                    <p>Upload Date: {fileInfo.uploadDate}</p>
                 </div>
             )}
         </div>
