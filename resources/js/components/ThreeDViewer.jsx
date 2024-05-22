@@ -10,11 +10,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 function ThreeDViewer({ file }) {
     const mountRef = useRef(null);
     const [details, setDetails] = useState({ vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0 });
-    const [errorMessage, setErrorMessage] = useState(""); // State to hold error messages
+    const [errorMessage, setErrorMessage] = useState(""); 
 
     useEffect(() => {
-        setDetails({ vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0 }); // Reset details
-        setErrorMessage(""); // Clear any previous error messages
+        setDetails({ vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0 }); 
+        setErrorMessage("");
         if (!file) return;
 
         const loader = selectLoader(file.name);
@@ -117,10 +117,10 @@ function ThreeDViewer({ file }) {
     }
 
     return (
-        <div ref={mountRef} className="viewer-container">
-            {errorMessage && <p className="error-message text-danger">{errorMessage}</p>}
+        <div ref={mountRef} className="viewer-container position-relative">
+            {errorMessage && <p className="error-message text-danger position-absolute top-0 right-0 p-3">{errorMessage}</p>}
             {details.vertices > 0 && (
-                <div className="details-panel">
+                <div className="details-panel position-absolute top-0 right-0 p-3 bg-light">
                     <h4>Details</h4>
                     <p>Vertices: {details.vertices}</p>
                     <p>Triangles: {details.triangles}</p>
