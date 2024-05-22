@@ -7,25 +7,61 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
+function calculateMeshProperties(geometry) {
+    let totalArea = 0;
+    let totalVolume = 0;
+    const vertices = geometry.attributes.position.array;
+    const indices = geometry.index ? geometry.index.array : null;
+
+    if (indices) {
+        const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
+        const cross = new THREE.Vector3();
+
+        for (let i = 0; i < indices.length; i += 3) {
+            const iA = indices[i] * 3;
+            const iB = indices[i + 1] * 3;
+            const iC = indices[i + 2] * 3;
+
+            vA.fromArray(vertices, iA);
+            vB.fromArray(vertices, iB);
+            vC.fromArray(vertices, iC);
+
+            cross.crossVectors(vB.sub(vA), vC.sub(vA));
+            totalArea += cross.length() / 2;
+
+            totalVolume += vA.dot(cross) / 6;
+        }
+    }
+
+    return {
+        area: totalArea,
+        volume: Math.abs(totalVolume) 
+    };
+}
+
 function ThreeDViewer({ file }) {
     const mountRef = useRef(null);
-    const [details, setDetails] = useState({ vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0 });
+    const [details, setDetails] = useState({
+        vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0, surfaceArea: 0, volume: 0
+    });
     const [errorMessage, setErrorMessage] = useState(""); 
     const [fileInfo, setFileInfo] = useState({ fileSize: 0, uploadDate: '' });
 
     useEffect(() => {
-        setDetails({ vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0 }); 
-        setErrorMessage(""); 
+        setDetails({
+            vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0, surfaceArea: 0, volume: 0
+        });
+        setErrorMessage("");
         if (!file) return;
 
         setFileInfo({
-            fileSize: (file.size / 1024 / 1024).toFixed(2) + ' MB', 
+            fileSize: (file.size / 1024 / 1024).toFixed(2) + ' MB',
             uploadDate: new Date().toLocaleDateString()
         });
 
         const loader = selectLoader(file.name);
         if (!loader) {
-            setErrorMessage("Unsupported file format"); 
+            setErrorMessage("Unsupported file format");
             return;
         }
 
@@ -77,19 +113,23 @@ function ThreeDViewer({ file }) {
                     child.geometry.computeBoundingBox();
                     const vertices = child.geometry.attributes.position.count;
                     const triangles = child.geometry.index ? child.geometry.index.count / 3 : vertices / 3;
+                    const { area, volume } = calculateMeshProperties(child.geometry);
                     setDetails(prevDetails => ({
+                        ...prevDetails,
                         vertices: prevDetails.vertices + vertices,
                         triangles: prevDetails.triangles + triangles,
                         sizeX: size.x,
                         sizeY: size.y,
-                        sizeZ: size.z
+                        sizeZ: size.z,
+                        surfaceArea: area,
+                        volume: volume
                     }));
                 }
             });
 
         }, undefined, (error) => {
             console.error('An error occurred while loading the model:', error);
-            setErrorMessage("An error occurred while loading the model."); 
+            setErrorMessage("An error occurred while loading the model.");
         });
 
         const animate = () => {
@@ -133,6 +173,8 @@ function ThreeDViewer({ file }) {
                     <p>Size X: {details.sizeX.toFixed(2)}</p>
                     <p>Size Y: {details.sizeY.toFixed(2)}</p>
                     <p>Size Z: {details.sizeZ.toFixed(2)}</p>
+                    <p>Surface Area: {details.surfaceArea.toFixed(2)} square units</p>
+                    <p>Volume: {details.volume.toFixed(2)} cubic units</p>
                     <p>File Size: {fileInfo.fileSize}</p>
                     <p>Upload Date: {fileInfo.uploadDate}</p>
                 </div>
