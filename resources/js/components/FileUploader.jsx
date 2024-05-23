@@ -24,12 +24,18 @@ function FileUploader() {
     return (
         <div className="container-full-height mx-5">
             <Header onFileSelect={handleFileSelect} />
-            <div {...getRootProps()} className="border-dashed border-2 p-5 text-center viewer-container">
+            <div {...getRootProps()} className={`border-2 p-5 text-center viewer-container ${file ? 'border-solid' : 'border-dashed'}`}>
                 <input {...getInputProps()} />
                 {
-                    isDragActive ?
-                    <h3>Drop the files here ...</h3> :
-                    <h3>Drag and Drop your 3D files here</h3>
+                    file ?
+                    (<div>
+                        <h3>{file.name}</h3>
+                        <p>File type: {file.type || file.name.split('.').pop()}</p>
+                    </div>) :
+                    (isDragActive ?
+                        <h3>Drop the files here ...</h3> :
+                        <h3>Drag and Drop your 3D files here</h3>
+                    )
                 }
                 <p>Supported files format: obj, fbx, stl, ply, glb, glTF, vrml, wrl</p>
                 {file && <ThreeDViewer file={file} />}

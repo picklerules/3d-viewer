@@ -5,11 +5,15 @@
 }
 
 .border-dashed {
-    border-style: dashed !important;
+    border-style: dashed;
     border-color: #ccc; 
     flex-grow: 1; 
     align-items: center; 
     justify-content: center;
+}
+
+.border-solid {
+    border-style: solid;
 }
 
 .viewer-container {
