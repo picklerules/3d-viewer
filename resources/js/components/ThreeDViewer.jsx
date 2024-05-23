@@ -49,22 +49,24 @@ function ThreeDViewer({ file }) {
     const [fileInfo, setFileInfo] = useState({ fileSize: 0, uploadDate: '' });
 
     useEffect(() => {
+        if (!file) {
+            return () => {
+                if (mountRef.current) {
+                    while (mountRef.current.firstChild) {
+                        mountRef.current.removeChild(mountRef.current.firstChild);
+                    }
+                }
+            };
+        }
+
         setDetails({
             vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0, surfaceArea: 0, volume: 0
         });
         setErrorMessage("");
-        if (!file) return;
-
         setFileInfo({
             fileSize: (file.size / 1024 / 1024).toFixed(2) + ' MB',
             uploadDate: new Date().toLocaleDateString()
         });
-
-        const loader = selectLoader(file.name);
-        if (!loader) {
-            setErrorMessage("Unsupported file format");
-            return;
-        }
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -81,6 +83,12 @@ function ThreeDViewer({ file }) {
         scene.add(directionalLight);
 
         const url = URL.createObjectURL(file);
+        const loader = selectLoader(file.name);
+        if (!loader) {
+            setErrorMessage("Unsupported file format");
+            return;
+        }
+
         loader.load(url, (loadedObject) => {
             let objectToAdd = loadedObject.scene ? loadedObject.scene : loadedObject;
             if (loadedObject instanceof THREE.BufferGeometry) {
@@ -110,7 +118,7 @@ function ThreeDViewer({ file }) {
             animate();
 
             objectToAdd.traverse(child => {
-                if (child.isMesh && child.geometry && child.geometry.attributes.position && (child.geometry.index || child.geometry.attributes.position)) {
+                if (child.isMesh && child.geometry) {
                     const { area, volume } = calculateMeshProperties(child.geometry);
                     const vertices = child.geometry.attributes.position.count;
                     const triangles = child.geometry.index ? child.geometry.index.count / 3 : vertices / 3;
@@ -126,7 +134,6 @@ function ThreeDViewer({ file }) {
                     }));
                 }
             });
-
         }, undefined, (error) => {
             console.error('An error occurred while loading the model:', error);
             setErrorMessage("An error occurred while loading the model.");
@@ -138,7 +145,9 @@ function ThreeDViewer({ file }) {
         };
 
         return () => {
-            mountRef.current.removeChild(renderer.domElement);
+            if (mountRef.current && renderer.domElement) {
+                mountRef.current.removeChild(renderer.domElement);
+            }
             URL.revokeObjectURL(url);
         };
     }, [file]);

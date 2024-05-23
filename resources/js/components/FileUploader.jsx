@@ -8,13 +8,16 @@ function FileUploader() {
     const [file, setFile] = useState(null);
     
     const handleFileSelect = (file) => {
-        console.log(file);
         setFile(file);
+    };
+
+    const handleReset = () => {
+        setFile(null);  
+        console.log('File input reset');
     };
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: acceptedFiles => {
-            console.log(acceptedFiles);
             setFile(acceptedFiles[0]); 
         },
         multiple: false,
@@ -23,7 +26,7 @@ function FileUploader() {
 
     return (
         <div className="container-full-height mx-5">
-            <Header onFileSelect={handleFileSelect} />
+            <Header onFileSelect={handleFileSelect} onReset={handleReset} />
             <div {...getRootProps()} className={`border-2 p-5 text-center viewer-container ${file ? 'border-solid' : 'border-dashed'}`}>
                 <input {...getInputProps()} />
                 {
