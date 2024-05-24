@@ -8,6 +8,7 @@ import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader';
 import { VRMLLoader } from 'three/examples/jsm/loaders/VRMLLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
+// Function to calculate the surface area and volume of the mesh
 function calculateMeshProperties(geometry) {
     let totalArea = 0;
     let totalVolume = 0;
@@ -52,8 +53,22 @@ function calculateMeshProperties(geometry) {
     };
 }
 
+// Function to get material settings based on the file extension
+function getMaterialSettings(extension) {
+    switch (extension) {
+        case 'stl':
+            return { color: 0xdddddd, shininess: 10, specular: 0x111111, reflectivity: 0.1 };
+        case 'ply':
+            return { color: 0xaaaaaa, shininess: 50, specular: 0x222222, reflectivity: 0.3 };
+        case 'vrml':
+        case 'wrl':
+            return { color: 0xcccccc, shininess: 75, specular: 0x444444, reflectivity: 0.4 };
+        default:
+            return { color: 0xffffff, shininess: 100, specular: 0x222222, reflectivity: 0.5 };
+    }
+}
 
-
+// Main component for 3D model viewing
 function ThreeDViewer({ file }) {
     const mountRef = useRef(null);
     const [details, setDetails] = useState({
@@ -73,6 +88,7 @@ function ThreeDViewer({ file }) {
             };
         }
 
+        // Reset details and error messages
         setDetails({
             vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0, surfaceArea: 0, volume: 0
         });
@@ -82,6 +98,7 @@ function ThreeDViewer({ file }) {
             uploadDate: new Date().toLocaleDateString()
         });
 
+        // Set up the scene, camera, and renderer
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -89,6 +106,7 @@ function ThreeDViewer({ file }) {
         renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
         mountRef.current.appendChild(renderer.domElement);
 
+        // Add lighting to the scene
         const ambientLight = new THREE.AmbientLight(0xffffff, 1);
         scene.add(ambientLight);
 
@@ -96,8 +114,9 @@ function ThreeDViewer({ file }) {
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
 
+        // Load the 3D model
         const url = URL.createObjectURL(file);
-        const loader = selectLoader(file.name);
+        const loader = selectLoader(file.name.split('.').pop());
         if (!loader) {
             setErrorMessage("Unsupported file format");
             return;
@@ -106,16 +125,13 @@ function ThreeDViewer({ file }) {
         loader.load(url, (loadedObject) => {
             let objectToAdd = loadedObject.scene ? loadedObject.scene : loadedObject;
             if (loadedObject instanceof THREE.BufferGeometry) {
-                objectToAdd = new THREE.Mesh(loadedObject, new THREE.MeshPhongMaterial({
-                    color: 0xffffff,
-                    specular: 0x222222,
-                    shininess: 100,
-                    reflectivity: 0.5
-                }));
+                const materialSettings = getMaterialSettings(file.name.split('.').pop());
+                objectToAdd = new THREE.Mesh(loadedObject, new THREE.MeshPhongMaterial(materialSettings));
             }
 
             scene.add(objectToAdd);
 
+            // Adjust the camera and controls to fit the model
             const box = new THREE.Box3().setFromObject(objectToAdd);
             const center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
@@ -129,8 +145,15 @@ function ThreeDViewer({ file }) {
             controls.target.copy(center);
             controls.update();
 
+            // Animation loop
+            const animate = () => {
+                requestAnimationFrame(animate);
+                renderer.render(scene, camera);
+            };
+
             animate();
 
+            // Calculate and set details for the model
             objectToAdd.traverse(child => {
                 if (child.isMesh && child.geometry) {
                     const { area, volume } = calculateMeshProperties(child.geometry);
@@ -153,11 +176,7 @@ function ThreeDViewer({ file }) {
             setErrorMessage("An error occurred while loading the model.");
         });
 
-        const animate = () => {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-        };
-
+        // Cleanup function to remove the renderer
         return () => {
             if (mountRef.current && renderer.domElement) {
                 mountRef.current.removeChild(renderer.domElement);
@@ -166,9 +185,9 @@ function ThreeDViewer({ file }) {
         };
     }, [file]);
 
-    function selectLoader(filename) {
-        const extension = filename.toLowerCase().split('.').pop();
-        switch (extension) {
+    // Function to select the appropriate loader based on the file extension
+    function selectLoader(extension) {
+        switch (extension.toLowerCase()) {
             case 'gltf':
             case 'glb':
                 return new GLTFLoader();
