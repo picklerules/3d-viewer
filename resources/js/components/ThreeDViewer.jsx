@@ -8,6 +8,7 @@ import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader';
 import { VRMLLoader } from 'three/examples/jsm/loaders/VRMLLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
+// Function to calculate the properties of the mesh (area and volume)
 function calculateMeshProperties(geometry) {
     let totalArea = 0;
     let totalVolume = 0;
@@ -33,9 +34,9 @@ function calculateMeshProperties(geometry) {
         }
     } else {
         for (let i = 0; i < vertices.length; i += 9) {
-            const vA = new THREE.Vector3(vertices[i], vertices[i+1], vertices[i+2]);
-            const vB = new THREE.Vector3(vertices[i+3], vertices[i+4], vertices[i+5]);
-            const vC = new THREE.Vector3(vertices[i+6], vertices[i+7], vertices[i+8]);
+            const vA = new THREE.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
+            const vB = new THREE.Vector3(vertices[i + 3], vertices[i + 4], vertices[i + 5]);
+            const vC = new THREE.Vector3(vertices[i + 6], vertices[i + 7], vertices[i + 8]);
 
             const cross = new THREE.Vector3();
             cross.crossVectors(vB.sub(vA), vC.sub(vA));
@@ -50,20 +51,22 @@ function calculateMeshProperties(geometry) {
     };
 }
 
+// Function to get the appropriate material settings based on file extension
 function getMaterialSettings(extension) {
     switch (extension) {
         case 'stl':
-            return { color: 0xdddddd, shininess: 10, specular: 0x111111, reflectivity: 0.1 };
+            return { color: 0xc8c8c8, shininess: 0, specular: 0x000000, reflectivity: 0, opacity: 1.0 };
         case 'ply':
             return { color: 0xaaaaaa, shininess: 50, specular: 0x222222, reflectivity: 0.3 };
         case 'vrml':
         case 'wrl':
-            return { color: 0xcccccc, shininess: 75, specular: 0x444444, reflectivity: 0.4 };
+            return { color: 0xff8000, shininess: 100, specular: 0x494949, reflectivity: 0.5, ambient: 0x404040, opacity: 1.0 };
         default:
             return { color: 0xffffff, shininess: 100, specular: 0x222222, reflectivity: 0.5 };
     }
 }
 
+// Main component to render 3D models
 function ThreeDViewer({ file }) {
     const mountRef = useRef(null);
     const [details, setDetails] = useState({
@@ -73,25 +76,17 @@ function ThreeDViewer({ file }) {
     const [fileInfo, setFileInfo] = useState({ fileSize: 0, uploadDate: '' });
 
     useEffect(() => {
-        if (!file) {
-            return () => {
-                if (mountRef.current) {
-                    while (mountRef.current.firstChild) {
-                        mountRef.current.removeChild(mountRef.current.firstChild);
-                    }
-                }
-            };
-        }
+        if (!file) return;
 
-        setDetails({
-            vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0, surfaceArea: 0, volume: 0
-        });
+        // Reset details and error message
+        setDetails({ vertices: 0, triangles: 0, sizeX: 0, sizeY: 0, sizeZ: 0, surfaceArea: 0, volume: 0 });
         setErrorMessage("");
         setFileInfo({
             fileSize: (file.size / 1024 / 1024).toFixed(2) + ' MB',
             uploadDate: new Date().toLocaleDateString()
         });
 
+        // Initialize the scene, camera, and renderer
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -99,23 +94,20 @@ function ThreeDViewer({ file }) {
         renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
         mountRef.current.appendChild(renderer.domElement);
 
-        // Add lights to the scene
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // Ambient Light
         scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 3);
-        directionalLight.position.set(5, 5, 5);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // Directional Light
+        directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
 
-        const spotLight = new THREE.SpotLight(0xffffff, 1);
-        spotLight.position.set(5, 5, 5);
+        const spotLight = new THREE.SpotLight(0xffffff, 0.7); // Spot Light
+        spotLight.position.set(2, 3, 2);
         spotLight.castShadow = true;
         scene.add(spotLight);
 
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
-        hemiLight.position.set(0, 20, 0);
-        scene.add(hemiLight);
-
+        // Load the model
         const url = URL.createObjectURL(file);
         const loader = selectLoader(file.name.split('.').pop());
         if (!loader) {
@@ -125,15 +117,36 @@ function ThreeDViewer({ file }) {
 
         loader.load(url, (loadedObject) => {
             let objectToAdd = loadedObject.scene ? loadedObject.scene : loadedObject;
+            const materialSettings = getMaterialSettings(file.name.split('.').pop());
             if (loadedObject instanceof THREE.BufferGeometry) {
-                const materialSettings = getMaterialSettings(file.name.split('.').pop());
                 objectToAdd = new THREE.Mesh(loadedObject, new THREE.MeshPhongMaterial(materialSettings));
+            } else {
+                objectToAdd.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        child.material.color.set(materialSettings.color);
+                        child.material.shininess = materialSettings.shininess;
+                        child.material.specular.set(materialSettings.specular);
+                        if (materialSettings.ambient) child.material.ambient = new THREE.Color(materialSettings.ambient);
+                        if (materialSettings.opacity !== undefined) child.material.opacity = materialSettings.opacity;
+                    }
+                });
             }
 
             scene.add(objectToAdd);
-            
-            console.log(objectToAdd); // Log object to inspect its properties
 
+            // Log material properties for inspection
+            objectToAdd.traverse(child => {
+                if (child.isMesh && child.material) {
+                    console.log('Mesh:', child.name);
+                    console.log('Material:', child.material);
+                    console.log('Color:', child.material.color);
+                    console.log('Specular:', child.material.specular);
+                    console.log('Shininess:', child.material.shininess);
+                    console.log('Opacity:', child.material.opacity);
+                }
+            });
+
+            // Adjust camera and controls
             const box = new THREE.Box3().setFromObject(objectToAdd);
             const center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
@@ -147,13 +160,20 @@ function ThreeDViewer({ file }) {
             controls.target.copy(center);
             controls.update();
 
+            // Animate the scene
             const animate = () => {
                 requestAnimationFrame(animate);
                 renderer.render(scene, camera);
+
+                // Rotate the spot light around the object
+                spotLight.position.x = center.x + Math.sin(Date.now() * 0.001) * 3;
+                spotLight.position.z = center.z + Math.cos(Date.now() * 0.001) * 3;
+                spotLight.lookAt(center);
             };
 
             animate();
 
+            // Calculate and set mesh details
             objectToAdd.traverse(child => {
                 if (child.isMesh && child.geometry) {
                     const { area, volume } = calculateMeshProperties(child.geometry);
@@ -184,6 +204,7 @@ function ThreeDViewer({ file }) {
         };
     }, [file]);
 
+    // Function to select the appropriate loader based on file extension
     function selectLoader(extension) {
         switch (extension.toLowerCase()) {
             case 'gltf':
