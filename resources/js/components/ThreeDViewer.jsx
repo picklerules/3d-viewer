@@ -109,8 +109,6 @@ function ThreeDViewer({ file }) {
             // Handle OBJ files specifically
             if (file.name.split('.').pop().toLowerCase() === 'obj') {
                 handleOBJ(objectToAdd, scene);
-            } else {
-                handleDefault(objectToAdd, scene);
             }
 
             scene.add(objectToAdd);
@@ -128,9 +126,19 @@ function ThreeDViewer({ file }) {
             controls.target.copy(center);
             controls.update();
 
+            const spotLight = new THREE.SpotLight(0xffffff, 4);
+            spotLight.position.set(2, 3, 2);
+            spotLight.castShadow = true;
+            scene.add(spotLight);
+
             const animate = () => {
                 requestAnimationFrame(animate);
                 renderer.render(scene, camera);
+
+                // Rotate the spot light around the object
+                spotLight.position.x = center.x + Math.sin(Date.now() * 0.001) * 3;
+                spotLight.position.z = center.z + Math.cos(Date.now() * 0.001) * 3;
+                spotLight.lookAt(center);
             };
 
             animate();
