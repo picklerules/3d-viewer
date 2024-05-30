@@ -78,41 +78,16 @@ function ThreeDViewer({ file }) {
         renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
         mountRef.current.appendChild(renderer.domElement);
 
-        // Add ambient, directional, and spot lights
-        // const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        // scene.add(ambientLight);
-
-        // const directionalLight = new THREE.DirectionalLight(0xffffff, 3);
-        // directionalLight.position.set(1, 1, 1);
-        // scene.add(directionalLight);
-
-        // const spotLight = new THREE.SpotLight(0xffffff, 4);
-        // spotLight.position.set(2, 3, 2);
-        // spotLight.castShadow = true;
-        // scene.add(spotLight);
-
-
-        // Lights test
+        // Add lights
         const keyLight = new THREE.DirectionalLight(0xffffff, 1.0);
         keyLight.position.set(-100, 0, 100);
-
         const fillLight = new THREE.DirectionalLight(0xffffff, 0.75);
         fillLight.position.set(100, 0, 100);
-
         const backLight = new THREE.DirectionalLight(0xffffff, 1.0);
         backLight.position.set(0, 0, -100).normalize();
-
-        const spotLight = new THREE.SpotLight(0xffffff, 4);
-        spotLight.position.set(2, 3, 2);
-        spotLight.castShadow = true;
-        scene.add(spotLight);
-
-        // Add the lights to the scene
         scene.add(keyLight);
         scene.add(fillLight);
         scene.add(backLight);
-
-
 
         const url = URL.createObjectURL(file);
         const loader = selectLoader(file.name.split('.').pop());
@@ -131,9 +106,11 @@ function ThreeDViewer({ file }) {
             console.log('Loaded Object:', loadedObject);
             console.log('Scene Graph:', objectToAdd);
 
-            // Specific handling for OBJ files
+            // Handle OBJ files specifically
             if (file.name.split('.').pop().toLowerCase() === 'obj') {
-                handleOBJ(objectToAdd);
+                handleOBJ(objectToAdd, scene);
+            } else {
+                handleDefault(objectToAdd, scene);
             }
 
             scene.add(objectToAdd);
@@ -154,11 +131,6 @@ function ThreeDViewer({ file }) {
             const animate = () => {
                 requestAnimationFrame(animate);
                 renderer.render(scene, camera);
-
-                // Rotate the spot light around the object
-                spotLight.position.x = center.x + Math.sin(Date.now() * 0.001) * 3;
-                spotLight.position.z = center.z + Math.cos(Date.now() * 0.001) * 3;
-                spotLight.lookAt(center);
             };
 
             animate();
@@ -214,25 +186,61 @@ function ThreeDViewer({ file }) {
         }
     }
 
-    function handleOBJ(objectToAdd) {
+    function handleOBJ(objectToAdd, scene) {
         objectToAdd.traverse(child => {
             if (child.isMesh && child.material) {
                 if (child.material.color) {
-                    child.material.color.setHex(child.material.color.getHex());
+                    console.log('Material Color:', child.material.color);
+                }
+                if (child.material.name) {
+                    console.log('Material Name:', child.material.name);
+                }
+                if (child.material.color.r === 1 && child.material.color.g === 1 && child.material.color.b === 1) {
+                    switch (child.material.name.toLowerCase()) {
+                        case 'red':
+                            child.material.color.set(0xff0000);
+                            break;
+                        case 'green':
+                            child.material.color.set(0x00ff00);
+                            break;
+                        case 'blue':
+                            child.material.color.set(0x0000ff);
+                            break;
+                        case 'orange':
+                            child.material.color.set(0xffa500);
+                            break;
+                        case 'purple':
+                            child.material.color.set(0x800080);
+                            break;
+                        default:
+                            child.material.color.set(0xffffff);
+                    }
                 }
                 if (child.material.specular) {
-                    child.material.specular.setHex(child.material.specular.getHex());
+                    console.log('Specular:', child.material.specular);
                 }
                 if (child.material.shininess !== undefined) {
-                    child.material.shininess = child.material.shininess;
-                }
-                if (child.material.reflectivity !== undefined) {
-                    child.material.reflectivity = child.material.reflectivity;
+                    console.log('Shininess:', child.material.shininess);
                 }
             }
+        });
+    }
 
-            if (child.isLight) {
-                scene.add(child);
+    function handleDefault(objectToAdd, scene) {
+        objectToAdd.traverse(child => {
+            if (child.isMesh && child.material) {
+                if (child.material.color) {
+                    console.log('Material Color:', child.material.color);
+                }
+                if (child.material.name) {
+                    console.log('Material Name:', child.material.name);
+                }
+                if (child.material.specular) {
+                    console.log('Specular:', child.material.specular);
+                }
+                if (child.material.shininess !== undefined) {
+                    console.log('Shininess:', child.material.shininess);
+                }
             }
         });
     }
