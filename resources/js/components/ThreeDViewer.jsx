@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader';
@@ -89,6 +90,11 @@ function ThreeDViewer({ file }) {
         scene.add(fillLight);
         scene.add(backLight);
 
+        const spotLight = new THREE.SpotLight(0xffffff, 4);
+        spotLight.position.set(2, 3, 2);
+        spotLight.castShadow = true;
+        scene.add(spotLight);
+
         const url = URL.createObjectURL(file);
         const loader = selectLoader(file.name.split('.').pop());
         if (!loader) {
@@ -96,74 +102,22 @@ function ThreeDViewer({ file }) {
             return;
         }
 
-        loader.load(url, (loadedObject) => {
-            let objectToAdd = loadedObject.scene ? loadedObject.scene : loadedObject;
-            if (loadedObject instanceof THREE.BufferGeometry) {
-                objectToAdd = new THREE.Mesh(loadedObject, new THREE.MeshPhongMaterial({ color: 0xffffff }));
-            }
-
-            // Log the entire structure of the model
-            console.log('Loaded Object:', loadedObject);
-            console.log('Scene Graph:', objectToAdd);
-
-            // Handle OBJ files specifically
-            if (file.name.split('.').pop().toLowerCase() === 'obj') {
-                handleOBJ(objectToAdd, scene);
-            }
-
-            scene.add(objectToAdd);
-
-            const box = new THREE.Box3().setFromObject(objectToAdd);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const fov = camera.fov * (Math.PI / 180);
-            const cameraZ = Math.abs(maxDim / 2 * Math.tan(fov * 2));
-            camera.position.set(center.x, center.y - (size.y / 4), cameraZ * 5);
-            camera.lookAt(center);
-
-            const controls = new OrbitControls(camera, renderer.domElement);
-            controls.target.copy(center);
-            controls.update();
-
-            const spotLight = new THREE.SpotLight(0xffffff, 4);
-            spotLight.position.set(2, 3, 2);
-            spotLight.castShadow = true;
-            scene.add(spotLight);
-
-            const animate = () => {
-                requestAnimationFrame(animate);
-                renderer.render(scene, camera);
-
-                // Rotate the spot light around the object
-                spotLight.position.x = center.x + Math.sin(Date.now() * 0.001) * 3;
-                spotLight.position.z = center.z + Math.cos(Date.now() * 0.001) * 3;
-                spotLight.lookAt(center);
-            };
-
-            animate();
-
-            objectToAdd.traverse(child => {
-                if (child.isMesh && child.geometry) {
-                    const { area, volume } = calculateMeshProperties(child.geometry);
-                    const vertices = child.geometry.attributes.position.count;
-                    const triangles = child.geometry.index ? child.geometry.index.count / 3 : vertices / 3;
-                    setDetails(prevDetails => ({
-                        ...prevDetails,
-                        vertices: prevDetails.vertices + vertices,
-                        triangles: prevDetails.triangles + triangles,
-                        sizeX: size.x,
-                        sizeY: size.y,
-                        sizeZ: size.z,
-                        surfaceArea: area,
-                        volume: volume
-                    }));
-                }
+        if (file.name.split('.').pop().toLowerCase() === 'obj') {
+            const mtlLoader = new MTLLoader();
+            mtlLoader.load(url.replace('.obj', '.mtl'), materials => {
+                materials.preload();
+                loader.setMaterials(materials);
+                loader.load(url, object => handleLoadedObject(object, scene, camera, renderer, spotLight, setDetails, file.name.split('.').pop().toLowerCase()), undefined, error => {
+                    console.error('An error occurred while loading the model:', error);
+                    setErrorMessage("An error occurred while loading the model.");
+                });
             });
-        }, undefined, (error) => {
-            console.error('An error occurred while loading the model:', error);
-            setErrorMessage("An error occurred while loading the model.");
-        });
+        } else {
+            loader.load(url, object => handleLoadedObject(object, scene, camera, renderer, spotLight, setDetails, file.name.split('.').pop().toLowerCase()), undefined, error => {
+                console.error('An error occurred while loading the model:', error);
+                setErrorMessage("An error occurred while loading the model.");
+            });
+        }
 
         return () => {
             if (mountRef.current && renderer.domElement) {
@@ -194,7 +148,71 @@ function ThreeDViewer({ file }) {
         }
     }
 
-    function handleOBJ(objectToAdd, scene) {
+    function handleLoadedObject(loadedObject, scene, camera, renderer, spotLight, setDetails, extension) {
+        let objectToAdd;
+        if (loadedObject.scene) {
+            objectToAdd = loadedObject.scene;
+        } else if (loadedObject.isObject3D) {
+            objectToAdd = loadedObject;
+        } else if (loadedObject instanceof THREE.BufferGeometry) {
+            objectToAdd = new THREE.Mesh(loadedObject, new THREE.MeshPhongMaterial({ color: 0xffffff }));
+        } else {
+            console.error('Loaded object is not a valid 3D object:', loadedObject);
+            setErrorMessage("Loaded object is not a valid 3D object.");
+            return;
+        }
+
+        if (extension === 'obj') {
+            handleOBJ(objectToAdd);
+        } else {
+            handleDefault(objectToAdd);
+        }
+
+        scene.add(objectToAdd);
+
+        const box = new THREE.Box3().setFromObject(objectToAdd);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = camera.fov * (Math.PI / 180);
+        const cameraZ = Math.abs(maxDim / 2 * Math.tan(fov * 2));
+        camera.position.set(center.x, center.y - (size.y / 4), cameraZ * 5);
+        camera.lookAt(center);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.copy(center);
+        controls.update();
+
+        const animate = () => {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+            spotLight.position.x = center.x + Math.sin(Date.now() * 0.001) * 3;
+            spotLight.position.z = center.z + Math.cos(Date.now() * 0.001) * 3;
+            spotLight.lookAt(center);
+        };
+
+        animate();
+
+        objectToAdd.traverse(child => {
+            if (child.isMesh && child.geometry) {
+                const { area, volume } = calculateMeshProperties(child.geometry);
+                const vertices = child.geometry.attributes.position.count;
+                const triangles = child.geometry.index ? child.geometry.index.count / 3 : vertices / 3;
+                setDetails(prevDetails => ({
+                    ...prevDetails,
+                    vertices: prevDetails.vertices + vertices,
+                    triangles: prevDetails.triangles + triangles,
+                    sizeX: size.x,
+                    sizeY: size.y,
+                    sizeZ: size.z,
+                    surfaceArea: area,
+                    volume: volume
+                }));
+            }
+        });
+    }
+
+    function handleOBJ(objectToAdd) {
         objectToAdd.traverse(child => {
             if (child.isMesh && child.material) {
                 if (child.material.color) {
@@ -234,7 +252,7 @@ function ThreeDViewer({ file }) {
         });
     }
 
-    function handleDefault(objectToAdd, scene) {
+    function handleDefault(objectToAdd) {
         objectToAdd.traverse(child => {
             if (child.isMesh && child.material) {
                 if (child.material.color) {
