@@ -8,6 +8,7 @@ import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader';
 import { VRMLLoader } from 'three/examples/jsm/loaders/VRMLLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
+// Function to calculate mesh properties: surface area and volume
 function calculateMeshProperties(geometry) {
     let totalArea = 0;
     let totalVolume = 0;
@@ -68,6 +69,7 @@ function ThreeDViewer({ file }) {
             uploadDate: new Date().toLocaleDateString()
         });
 
+        // Initialize scene, camera, and renderer
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -75,6 +77,7 @@ function ThreeDViewer({ file }) {
         renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
         mountRef.current.appendChild(renderer.domElement);
 
+        // Add lights to the scene
         const keyLight = new THREE.DirectionalLight(0xffffff, 1.0);
         keyLight.position.set(-100, 0, 100);
         const fillLight = new THREE.DirectionalLight(0xffffff, 0.75);
@@ -86,6 +89,7 @@ function ThreeDViewer({ file }) {
         spotLight.castShadow = true;
         scene.add(keyLight, fillLight, backLight, spotLight);
 
+        // Load the 3D model
         const url = URL.createObjectURL(file);
         const loader = selectLoader(file.name.split('.').pop());
         if (!loader) {
@@ -93,12 +97,14 @@ function ThreeDViewer({ file }) {
             return;
         }
 
+        // Handle loading based on file type
         if (file.name.split('.').pop().toLowerCase() === 'obj') {
             handleOBJ(scene, url, renderer, camera, spotLight);
         } else {
             handleDefault(scene, url, loader, renderer, camera, spotLight);
         }
 
+        // Cleanup on component unmount
         return () => {
             if (mountRef.current && renderer.domElement) {
                 mountRef.current.removeChild(renderer.domElement);
@@ -107,6 +113,7 @@ function ThreeDViewer({ file }) {
         };
     }, [file]);
 
+    // Function to select the appropriate loader based on file extension
     function selectLoader(extension) {
         switch (extension.toLowerCase()) {
             case 'gltf':
@@ -128,6 +135,7 @@ function ThreeDViewer({ file }) {
         }
     }
 
+    // Function to handle loading and processing of OBJ files
     function handleOBJ(scene, url, renderer, camera, spotLight) {
         const objLoader = new OBJLoader();
 
@@ -154,6 +162,25 @@ function ThreeDViewer({ file }) {
                             case 'purple':
                                 child.material.color.set(0x800080);
                                 break;
+                            case 'yellow':
+                                child.material.color.set(0xffff00);
+                                break;
+                            case 'cyan':
+                                child.material.color.set(0x00ffff);
+                                break;
+                            case 'magenta':
+                                child.material.color.set(0xff00ff);
+                                break;
+                            case 'black':
+                                child.material.color.set(0x000000);
+                                break;
+                            case 'white':
+                                child.material.color.set(0xffffff);
+                                break;
+                            case 'gray':
+                                child.material.color.set(0x808080);
+                                break;
+                            // Add more colors as needed
                             default:
                                 child.material.color.set(0xffffff); // Default to white if no match
                                 break;
@@ -170,6 +197,7 @@ function ThreeDViewer({ file }) {
         });
     }
 
+    // Function to handle loading and processing of other file types
     function handleDefault(scene, url, loader, renderer, camera, spotLight) {
         loader.load(url, loadedObject => {
             let objectToAdd = loadedObject.scene ? loadedObject.scene : loadedObject;
@@ -188,6 +216,7 @@ function ThreeDViewer({ file }) {
         });
     }
 
+    // Function to update the scene with the loaded object
     function updateScene(object, scene, renderer, camera, spotLight) {
         const box = new THREE.Box3().setFromObject(object);
         const center = box.getCenter(new THREE.Vector3());
@@ -212,6 +241,7 @@ function ThreeDViewer({ file }) {
 
         animate();
 
+        // Calculate mesh properties and update state
         object.traverse(child => {
             if (child.isMesh && child.geometry) {
                 const { area, volume } = calculateMeshProperties(child.geometry);
