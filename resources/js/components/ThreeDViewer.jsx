@@ -100,6 +100,8 @@ function ThreeDViewer({ file }) {
         // Handle loading based on file type
         if (file.name.split('.').pop().toLowerCase() === 'obj') {
             handleOBJ(scene, url, renderer, camera, spotLight);
+        } else if (file.name.split('.').pop().toLowerCase() === 'ply') {
+            handlePLY(scene, url, renderer, camera, spotLight);
         } else {
             handleDefault(scene, url, loader, renderer, camera, spotLight);
         }
@@ -193,6 +195,38 @@ function ThreeDViewer({ file }) {
             updateScene(obj, scene, renderer, camera, spotLight);
         }, undefined, err => {
             console.error('An error occurred while loading the OBJ file:', err);
+            setErrorMessage("An error occurred while loading the model.");
+        });
+    }
+
+    // Function to handle loading and processing of PLY files
+    function handlePLY(scene, url, renderer, camera, spotLight) {
+        const plyLoader = new PLYLoader();
+
+        plyLoader.load(url, geometry => {
+            console.log('PLY Loaded:', geometry);
+
+            // Inspect the attributes to check for color
+            console.log('PLY Attributes:', geometry.attributes);
+
+            // Check if the PLY file has vertex colors
+            let material;
+            if (geometry.attributes.color) {
+                material = new THREE.MeshStandardMaterial({
+                    vertexColors: true,
+                    flatShading: true
+                });
+            } else {
+                material = new THREE.MeshStandardMaterial({
+                    color: 0xffffff
+                });
+            }
+
+            const mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+            updateScene(mesh, scene, renderer, camera, spotLight);
+        }, undefined, err => {
+            console.error('An error occurred while loading the PLY file:', err);
             setErrorMessage("An error occurred while loading the model.");
         });
     }
