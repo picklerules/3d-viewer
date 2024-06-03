@@ -209,17 +209,17 @@ function ThreeDViewer({ file }) {
             // Inspect the attributes to check for color
             console.log('PLY Attributes:', geometry.attributes);
 
+            // Create material with specified properties
+            const material = new THREE.MeshPhongMaterial({
+                color: 0xc8c8c8, // Default color
+                specular: 0x000000, // Specular color
+                shininess: 30, // Adjust as necessary
+                flatShading: true
+            });
+
             // Check if the PLY file has vertex colors
-            let material;
             if (geometry.attributes.color) {
-                material = new THREE.MeshStandardMaterial({
-                    vertexColors: true,
-                    flatShading: true
-                });
-            } else {
-                material = new THREE.MeshStandardMaterial({
-                    color: 0xffffff
-                });
+                material.vertexColors = true;
             }
 
             const mesh = new THREE.Mesh(geometry, material);
