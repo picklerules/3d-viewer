@@ -91,7 +91,7 @@ function ThreeDViewer({ file }) {
 
         // Load the 3D model
         const url = URL.createObjectURL(file);
-        const loader = selectLoader(file.name.split('.').pop());
+        const loader = selectLoader(file.name.split('.').pop().toLowerCase());
         if (!loader) {
             setErrorMessage("Unsupported file format");
             return;
@@ -117,7 +117,7 @@ function ThreeDViewer({ file }) {
 
     // Function to select the appropriate loader based on file extension
     function selectLoader(extension) {
-        switch (extension.toLowerCase()) {
+        switch (extension) {
             case 'gltf':
             case 'glb':
                 return new GLTFLoader();
@@ -297,7 +297,7 @@ function ThreeDViewer({ file }) {
 
     return (
         <div ref={mountRef} className="viewer-container position-relative">
-            {errorMessage && <p className="error-message text-danger">{errorMessage}</p>}
+            {errorMessage && <div className="alert alert-danger position-absolute w-100 text-center" style={{ top: 0 }}>{errorMessage}</div>}
             {details.vertices > 0 && (
                 <div className="details-panel position-absolute top-0 right-0 p-3 bg-light">
                     <h4>Details</h4>
@@ -308,8 +308,6 @@ function ThreeDViewer({ file }) {
                     <p>Size Z: {details.sizeZ.toFixed(2)}</p>
                     <p>Surface Area: {details.surfaceArea.toFixed(2)} square units</p>
                     <p>Volume: {details.volume.toFixed(2)} cubic units</p>
-                    <p>File Size: {fileInfo.fileSize}</p>
-                    <p>Upload Date: {fileInfo.uploadDate}</p>
                 </div>
             )}
         </div>
