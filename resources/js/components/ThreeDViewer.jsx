@@ -69,7 +69,7 @@ function ThreeDViewer({ file }) {
             uploadDate: new Date().toLocaleDateString()
         });
 
-        // Initialize scene, camera, and renderer
+        // Initialize scene, camera, renderer, and controls
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -88,8 +88,16 @@ function ThreeDViewer({ file }) {
         spotLight.position.set(2, 3, 2);
         spotLight.castShadow = true;
         scene.add(keyLight, fillLight, backLight, spotLight);
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
         scene.add(ambientLight);
+
+        // Initialize controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enableZoom = true;
+        controls.enablePan = true;
+        controls.enableRotate = true;
 
         // Load the 3D model
         const url = URL.createObjectURL(file);
@@ -101,13 +109,13 @@ function ThreeDViewer({ file }) {
 
         // Handle loading based on file type
         if (file.name.split('.').pop().toLowerCase() === 'obj') {
-            handleOBJ(scene, url, renderer, camera, spotLight);
+            handleOBJ(scene, url, renderer, camera, spotLight, controls);
         } else if (file.name.split('.').pop().toLowerCase() === 'ply') {
-            handlePLY(scene, url, renderer, camera, spotLight);
+            handlePLY(scene, url, renderer, camera, spotLight, controls);
         } else if (file.name.split('.').pop().toLowerCase() === 'stl') {
-            handleSTL(scene, url, renderer, camera, spotLight);
+            handleSTL(scene, url, renderer, camera, spotLight, controls);
         } else {
-            handleDefault(scene, url, loader, renderer, camera, spotLight);
+            handleDefault(scene, url, loader, renderer, camera, spotLight, controls);
         }
 
         // Cleanup on component unmount
@@ -142,7 +150,7 @@ function ThreeDViewer({ file }) {
     }
 
     // Function to handle loading and processing of OBJ files
-    function handleOBJ(scene, url, renderer, camera, spotLight) {
+    function handleOBJ(scene, url, renderer, camera, spotLight, controls) {
         const objLoader = new OBJLoader();
 
         objLoader.load(url, obj => {
@@ -196,7 +204,7 @@ function ThreeDViewer({ file }) {
                 }
             });
             scene.add(obj);
-            updateScene(obj, scene, renderer, camera, spotLight);
+            updateScene(obj, scene, renderer, camera, spotLight, controls);
         }, undefined, err => {
             console.error('An error occurred while loading the OBJ file:', err);
             setErrorMessage("An error occurred while loading the model.");
@@ -204,7 +212,7 @@ function ThreeDViewer({ file }) {
     }
 
     // Function to handle loading and processing of PLY files
-    function handlePLY(scene, url, renderer, camera, spotLight) {
+    function handlePLY(scene, url, renderer, camera, spotLight, controls) {
         const plyLoader = new PLYLoader();
 
         plyLoader.load(url, geometry => {
@@ -228,7 +236,7 @@ function ThreeDViewer({ file }) {
 
             const mesh = new THREE.Mesh(geometry, material);
             scene.add(mesh);
-            updateScene(mesh, scene, renderer, camera, spotLight);
+            updateScene(mesh, scene, renderer, camera, spotLight, controls);
         }, undefined, err => {
             console.error('An error occurred while loading the PLY file:', err);
             setErrorMessage("An error occurred while loading the model.");
@@ -236,7 +244,7 @@ function ThreeDViewer({ file }) {
     }
 
     // Function to handle loading and processing of STL files
-    function handleSTL(scene, url, renderer, camera, spotLight) {
+    function handleSTL(scene, url, renderer, camera, spotLight, controls) {
         const stlLoader = new STLLoader();
 
         stlLoader.load(url, geometry => {
@@ -245,16 +253,15 @@ function ThreeDViewer({ file }) {
             const material = new THREE.MeshPhongMaterial({ color: 0xc8c8c8 });
             const mesh = new THREE.Mesh(geometry, material);
             scene.add(mesh);
-            updateScene(mesh, scene, renderer, camera, spotLight);
+            updateScene(mesh, scene, renderer, camera, spotLight, controls);
         }, undefined, err => {
             console.error('An error occurred while loading the STL file:', err);
             setErrorMessage("An error occurred while loading the model.");
         });
     }
-    
 
     // Function to handle loading and processing of other file types
-    function handleDefault(scene, url, loader, renderer, camera, spotLight) {
+    function handleDefault(scene, url, loader, renderer, camera, spotLight, controls) {
         loader.load(url, loadedObject => {
             let objectToAdd = loadedObject.scene ? loadedObject.scene : loadedObject;
             if (loadedObject instanceof THREE.BufferGeometry) {
@@ -265,7 +272,7 @@ function ThreeDViewer({ file }) {
             console.log('Scene Graph:', objectToAdd);
 
             scene.add(objectToAdd);
-            updateScene(objectToAdd, scene, renderer, camera, spotLight);
+            updateScene(objectToAdd, scene, renderer, camera, spotLight, controls);
         }, undefined, error => {
             console.error('An error occurred while loading the model:', error);
             setErrorMessage("An error occurred while loading the model.");
@@ -273,7 +280,7 @@ function ThreeDViewer({ file }) {
     }
 
     // Function to update the scene with the loaded object
-    function updateScene(object, scene, renderer, camera, spotLight) {
+    function updateScene(object, scene, renderer, camera, spotLight, controls) {
         const box = new THREE.Box3().setFromObject(object);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
@@ -283,13 +290,7 @@ function ThreeDViewer({ file }) {
         camera.position.set(center.x, center.y - (size.y / 4), cameraZ * 5);
         camera.lookAt(center);
 
-        const controls = new OrbitControls(camera, renderer.domElement);
         controls.target.copy(center);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.enableZoom = true;
-        controls.enablePan = true;
-        controls.enableRotate = true;
         controls.update();
 
         const animate = () => {
