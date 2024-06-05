@@ -88,6 +88,8 @@ function ThreeDViewer({ file }) {
         spotLight.position.set(2, 3, 2);
         spotLight.castShadow = true;
         scene.add(keyLight, fillLight, backLight, spotLight);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
 
         // Load the 3D model
         const url = URL.createObjectURL(file);
@@ -102,6 +104,8 @@ function ThreeDViewer({ file }) {
             handleOBJ(scene, url, renderer, camera, spotLight);
         } else if (file.name.split('.').pop().toLowerCase() === 'ply') {
             handlePLY(scene, url, renderer, camera, spotLight);
+        } else if (file.name.split('.').pop().toLowerCase() === 'stl') {
+            handleSTL(scene, url, renderer, camera, spotLight);
         } else {
             handleDefault(scene, url, loader, renderer, camera, spotLight);
         }
@@ -231,6 +235,24 @@ function ThreeDViewer({ file }) {
         });
     }
 
+    // Function to handle loading and processing of STL files
+    function handleSTL(scene, url, renderer, camera, spotLight) {
+        const stlLoader = new STLLoader();
+
+        stlLoader.load(url, geometry => {
+            console.log('STL Loaded:', geometry);
+
+            const material = new THREE.MeshPhongMaterial({ color: 0xc8c8c8 });
+            const mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+            updateScene(mesh, scene, renderer, camera, spotLight);
+        }, undefined, err => {
+            console.error('An error occurred while loading the STL file:', err);
+            setErrorMessage("An error occurred while loading the model.");
+        });
+    }
+    
+
     // Function to handle loading and processing of other file types
     function handleDefault(scene, url, loader, renderer, camera, spotLight) {
         loader.load(url, loadedObject => {
@@ -263,6 +285,11 @@ function ThreeDViewer({ file }) {
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.target.copy(center);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enableZoom = true;
+        controls.enablePan = true;
+        controls.enableRotate = true;
         controls.update();
 
         const animate = () => {
@@ -270,6 +297,7 @@ function ThreeDViewer({ file }) {
             spotLight.position.x = center.x + Math.sin(Date.now() * 0.001) * 3;
             spotLight.position.z = center.z + Math.cos(Date.now() * 0.001) * 3;
             spotLight.lookAt(center);
+            controls.update();
             renderer.render(scene, camera);
         };
 
