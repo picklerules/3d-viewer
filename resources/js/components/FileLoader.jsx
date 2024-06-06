@@ -7,6 +7,8 @@ import { VRMLLoader } from 'three/examples/jsm/loaders/VRMLLoader';
 import * as THREE from 'three';
 import { calculateMeshProperties } from './MeshProperties';
 
+const textureLoader = new THREE.TextureLoader();
+
 export function FileLoader(extension) {
     switch (extension) {
         case 'gltf':
@@ -31,6 +33,7 @@ export function FileLoader(extension) {
 export function handleOBJ(scene, url, renderer, camera, controls, setErrorMessage, setDetails) {
     const loader = new OBJLoader();
     loader.load(url, obj => {
+        console.log('OBJ Loaded:', obj);
         obj.traverse(child => {
             if (child.isMesh && child.material) {
                 applyMaterialColor(child.material);
@@ -39,6 +42,7 @@ export function handleOBJ(scene, url, renderer, camera, controls, setErrorMessag
         scene.add(obj);
         updateScene(obj, scene, renderer, camera, controls, setDetails);
     }, undefined, err => {
+        console.error('An error occurred while loading the OBJ file:', err);
         setErrorMessage("An error occurred while loading the OBJ file.");
     });
 }
@@ -46,10 +50,11 @@ export function handleOBJ(scene, url, renderer, camera, controls, setErrorMessag
 export function handlePLY(scene, url, renderer, camera, controls, setErrorMessage, setDetails) {
     const loader = new PLYLoader();
     loader.load(url, geometry => {
-        const material = new THREE.MeshPhongMaterial({
+        console.log('PLY Loaded:', geometry);
+        const material = new THREE.MeshStandardMaterial({
             color: 0xc8c8c8,
-            specular: 0x000000,
-            shininess: 30,
+            roughness: 0.5,
+            metalness: 0.1,
             flatShading: true
         });
         if (geometry.attributes.color) {
@@ -59,6 +64,7 @@ export function handlePLY(scene, url, renderer, camera, controls, setErrorMessag
         scene.add(mesh);
         updateScene(mesh, scene, renderer, camera, controls, setDetails);
     }, undefined, err => {
+        console.error('An error occurred while loading the PLY file:', err);
         setErrorMessage("An error occurred while loading the PLY file.");
     });
 }
@@ -66,24 +72,35 @@ export function handlePLY(scene, url, renderer, camera, controls, setErrorMessag
 export function handleSTL(scene, url, renderer, camera, controls, setErrorMessage, setDetails) {
     const loader = new STLLoader();
     loader.load(url, geometry => {
-        const material = new THREE.MeshPhongMaterial({ color: 0xc8c8c8 });
+        console.log('STL Loaded:', geometry);
+        const material = new THREE.MeshStandardMaterial({ color: 0xc8c8c8 });
         const mesh = new THREE.Mesh(geometry, material);
         scene.add(mesh);
         updateScene(mesh, scene, renderer, camera, controls, setDetails);
     }, undefined, err => {
+        console.error('An error occurred while loading the STL file:', err);
         setErrorMessage("An error occurred while loading the STL file.");
     });
 }
 
 export function handleDefault(loader, url, scene, renderer, camera, controls, setErrorMessage, setDetails) {
     loader.load(url, loadedObject => {
+        console.log('Loaded Object:', loadedObject);
         let objectToAdd = loadedObject.scene ? loadedObject.scene : loadedObject;
         if (loadedObject instanceof THREE.BufferGeometry) {
-            objectToAdd = new THREE.Mesh(loadedObject, new THREE.MeshPhongMaterial({ color: 0xffffff }));
+            objectToAdd = new THREE.Mesh(loadedObject, new THREE.MeshPhysicalMaterial({
+                color: 0xffffff,
+                roughness: 0.5,
+                metalness: 0.5,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1
+            }));
         }
+        console.log('Scene Graph:', objectToAdd);
         scene.add(objectToAdd);
         updateScene(objectToAdd, scene, renderer, camera, controls, setDetails);
     }, undefined, error => {
+        console.error('An error occurred while loading the model:', error);
         setErrorMessage("An error occurred while loading the model.");
     });
 }
@@ -167,4 +184,11 @@ function applyMaterialColor(material) {
             break;
     }
     material.needsUpdate = true;
+}
+
+function applyTexture(material, texturePath) {
+    textureLoader.load(texturePath, texture => {
+        material.map = texture;
+        material.needsUpdate = true;
+    });
 }
