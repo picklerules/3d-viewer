@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { FileLoader, handlePLY, handleOBJ, handleSTL, handleDefault } from './FileLoader';
+import { FileLoader, handlePLY, handleOBJ, handleSTL, handleFBX, handleDefault } from './FileLoader';
 import { calculateMeshProperties } from './MeshProperties';
 import { LightingSetup } from './LightingSetup';
 
@@ -59,6 +59,9 @@ function ThreeDViewer({ file }) {
                 break;
             case 'stl':
                 handleSTL(scene, url, renderer, camera, controls, setErrorMessage, setDetails);
+                break;
+            case 'fbx':
+                handleFBX(scene, url, renderer, camera, controls, setErrorMessage, setDetails);
                 break;
             default:
                 handleDefault(loader, url, scene, renderer, camera, controls, setErrorMessage, setDetails);

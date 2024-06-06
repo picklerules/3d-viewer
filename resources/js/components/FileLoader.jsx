@@ -83,6 +83,29 @@ export function handleSTL(scene, url, renderer, camera, controls, setErrorMessag
     });
 }
 
+export function handleFBX(scene, url, renderer, camera, controls, setErrorMessage, setDetails) {
+    const loader = new FBXLoader();
+    loader.load(url, fbx => {
+        console.log('FBX Loaded:', fbx);
+        fbx.traverse(child => {
+            if (child.isMesh) {
+                // Adjust material properties to ensure the model is not too dark
+                child.material = new THREE.MeshStandardMaterial({
+                    color: child.material.color,
+                    roughness: 0.5,
+                    metalness: 0.1,
+                    flatShading: false
+                });
+            }
+        });
+        scene.add(fbx);
+        updateScene(fbx, scene, renderer, camera, controls, setDetails);
+    }, undefined, err => {
+        console.error('An error occurred while loading the FBX file:', err);
+        setErrorMessage("An error occurred while loading the FBX file.");
+    });
+}
+
 export function handleDefault(loader, url, scene, renderer, camera, controls, setErrorMessage, setDetails) {
     loader.load(url, loadedObject => {
         console.log('Loaded Object:', loadedObject);
