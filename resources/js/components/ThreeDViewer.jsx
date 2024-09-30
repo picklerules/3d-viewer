@@ -2,9 +2,15 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { FileLoader, handlePLY, handleOBJ, handleSTL, handleFBX, handleDefault } from './FileLoader';
-import { calculateMeshProperties } from './MeshProperties';
 import { LightingSetup } from './LightingSetup';
 
+/**
+ * ThreeDViewer Component
+ * Responsible for rendering 3D models using Three.js based on the uploaded file.
+ *
+ * @component
+ * @param {Object} file - The uploaded file to be rendered.
+ */
 function ThreeDViewer({ file }) {
     const mountRef = useRef(null);
     const [details, setDetails] = useState({
@@ -12,7 +18,6 @@ function ThreeDViewer({ file }) {
     });
     const [errorMessage, setErrorMessage] = useState("");
     const [fileInfo, setFileInfo] = useState({ fileSize: 0, uploadDate: '' });
-    // const [textureFile, setTextureFile] = useState(null);
 
     useEffect(() => {
         if (!file) return;
@@ -75,11 +80,6 @@ function ThreeDViewer({ file }) {
         };
     }, [file]);
 
-    // Allow user to upload a texture file
-    // const handleTextureUpload = (event) => {
-    //     setTextureFile(event.target.files[0]);
-    // };
-
     return (
         <div ref={mountRef} className="viewer-container position-relative">
             {errorMessage && <div className="alert alert-danger position-absolute w-100 text-center" style={{ top: 0 }}>{errorMessage}</div>}
@@ -95,7 +95,6 @@ function ThreeDViewer({ file }) {
                     <p>Volume: {details.volume.toFixed(2)} cubic units</p>
                 </div>
             )}
-            {/* <input type="file" onChange={handleTextureUpload} /> */}
         </div>
     );
 }

@@ -1,16 +1,32 @@
 import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import '../../css/customStyles.css';
 import Header from './Header';
 import ThreeDViewer from './ThreeDViewer';
 
+/**
+ * FileUploader Component
+ * Handles file uploading through drag-and-drop and file input.
+ * Selected file is passed to the ThreeDViewer for rendering.
+ *
+ * @component
+ */
 function FileUploader() {
     const [file, setFile] = useState(null);
-    
+
+    /**
+     * handleFileSelect
+     * Sets the selected file in the state.
+     *
+     * @param {Object} file - The uploaded file object
+     */
     const handleFileSelect = (file) => {
         setFile(file);
     };
 
+    /**
+     * handleReset
+     * Resets the file input and clears the file from the state.
+     */
     const handleReset = () => {
         setFile(null);  
         console.log('File input reset');
