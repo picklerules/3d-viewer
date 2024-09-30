@@ -18,3 +18,46 @@ This project was completed as part of my internship at GeniusXR.
 - **React**: Frontend framework for building the user interface.
 - **Three.js**: JavaScript library for creating and displaying animated 3D graphics in the browser.
 
+## How to Run the Project
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/picklerules/3d-viewer.git
+   ```
+
+2. Navigate to the project directory:
+   ```bash
+   cd 3d-viewer
+   ```
+
+3. Install the Node.js dependencies:
+   ```bash
+   npm install
+   ```
+
+4. Install the PHP dependencies:
+   ```bash
+   composer install
+   ```
+
+5. Copy the `.env.example` file to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+
+6. Generate the application key:
+   ```bash
+   php artisan key:generate
+   ```
+
+7. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+
+8. Start the Laravel development server:
+   ```bash
+   php artisan serve
+   ```
+
+9. Open your browser and go to `http://localhost:8000` to view the 3D viewer.
